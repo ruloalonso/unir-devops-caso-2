@@ -42,7 +42,7 @@ resource "azurerm_subnet" "myterraformsubnet" {
 # Create public IPs
 resource "azurerm_public_ip" "myterraformpublicip" {
   name                = "myPublicIP-${count.index}"
-  count               = 3
+  count               =2
   location            = var.location
   resource_group_name = azurerm_resource_group.myterraformgroup.name
   allocation_method   = "Dynamic"
@@ -55,7 +55,7 @@ resource "azurerm_public_ip" "myterraformpublicip" {
 # Create Network Security Group and rule
 resource "azurerm_network_security_group" "myterraformnsg" {
   name                = "myNSG-${count.index}"
-  count               = 3
+  count               =2
   location            = var.location
   resource_group_name = azurerm_resource_group.myterraformgroup.name
 
@@ -79,7 +79,7 @@ resource "azurerm_network_security_group" "myterraformnsg" {
 # Create network interface
 resource "azurerm_network_interface" "myterraformnic" {
   name                = "myNIC-${count.index}"
-  count               = 3
+  count               =2
   location            = var.location
   resource_group_name = azurerm_resource_group.myterraformgroup.name
 
@@ -97,7 +97,7 @@ resource "azurerm_network_interface" "myterraformnic" {
 
 # Connect the security group to the network interface
 resource "azurerm_network_interface_security_group_association" "example" {
-  count                     = 3
+  count                     =2
   network_interface_id      = azurerm_network_interface.myterraformnic[count.index].id
   network_security_group_id = azurerm_network_security_group.myterraformnsg[count.index].id
 }
@@ -117,12 +117,12 @@ resource "azurerm_storage_account" "mystorageaccount" {
 
 # Create virtual machine
 resource "azurerm_linux_virtual_machine" "myterraformvm" {
-  count                 = 3
+  count                 =2
   name                  = "myVM-${count.index}"
   location              = var.location
   resource_group_name   = azurerm_resource_group.myterraformgroup.name
   network_interface_ids = [azurerm_network_interface.myterraformnic[count.index].id]
-  size                  = "Standard_B1s"
+  size                  = "Standard_B2s"
 
   os_disk {
     name                 = "myOsDisk-${count.index}"

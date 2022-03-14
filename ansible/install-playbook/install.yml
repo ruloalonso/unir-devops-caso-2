@@ -1,0 +1,77 @@
+- hosts: all
+  vars:
+    - docker_version: '1:20.10.13-3.el7'
+    - kube_version: '1.22.2-0'
+  tasks:
+  - name: Disable SELinux
+    selinux:
+      state: disabled
+  - name: Disable SWAP
+    shell: swapoff -a
+  - name: Create disable swap fstab
+    shell: line=$(grep -n -m 1 swap /etc/fstab | cut -d ":" -f 1) && sed -e "${line}s/^/#/" /etc/fstab > /etc/fstab.bk
+  - name: Disabled Swap
+    shell: cp /etc/fstab.bk /etc/fstab
+  - name: Active netfiter
+    shell: modprobe br_netfilter
+  - name: Test netfilter config
+    shell: if grep -q "^net.bridge.bridge-nf-call-iptables = 1" /etc/sysctl.conf; then echo false; else echo true;  fi
+    register: test_grep
+  - name: enable netfiler
+    lineinfile:
+      dest: /etc/sysctl.conf
+      line: net.bridge.bridge-nf-call-iptables = 1
+    when: test_grep.stdout == "true"
+  - name: disable firewall
+    shell: systemctl stop firewalld && systemctl disable firewalld && systemctl mask --now firewalld
+  - name: Add epel-release repo and utils
+    yum:
+      name: ['epel-release','yum-utils','device-mapper-persistent-data','lvm2']
+      state: present
+  - name: Add docker repository
+    shell: yum-config-manager  --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  - name: Install docker
+    yum:
+      name:
+        - "docker-ce-{{ docker_version }}"
+        - "docker-ce-cli-{{ docker_version }}"
+        - containerd.io
+      state: present
+  - name: Start Docker
+    service:
+      name: docker
+      state: started
+      enabled: yes
+  - name: Copy docker daemon.json
+    copy:
+      src: ./daemon.json
+      dest: /etc/docker/daemon.json
+      follow: yes
+  - name: Creating a repository file for Kubernetes
+    file:
+     path: /etc/yum.repos.d/kubernetes.repo
+     state: touch
+  - name: Adding repository details in Kubernetes repo file.
+    blockinfile:
+     path: /etc/yum.repos.d/kubernetes.repo
+     block: |
+        [kubernetes]
+        name=Kubernetes
+        baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+        enabled=1
+        gpgcheck=0
+        repo_gpgcheck=0
+        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+                https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+  - name: Install kubernetes
+    yum:
+      name:
+        - "kubeadm-{{ kube_version }}"
+        - "kubelet-{{ kube_version }}"
+        - "kubectl-{{ kube_version }}"
+      state: present
+    #when: (kube_version != "")
+  - name: Start kubelet
+    shell: systemctl enable kubelet
+  - name: reboot
+    reboot:
