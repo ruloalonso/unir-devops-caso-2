@@ -6,4 +6,3 @@ ansible_user=azureuser
 
 [workers]
 20.120.91.78
-20.120.90.119

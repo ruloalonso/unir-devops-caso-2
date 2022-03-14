@@ -1,9 +1,0 @@
-[all:vars]
-ansible_user=azureuser
-
-[master]
-20.120.91.62
-
-[workers]
-20.120.91.78
-20.120.90.119
